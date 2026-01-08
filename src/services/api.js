@@ -1,4 +1,13 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
+// Ensure API_BASE_URL always ends with /api
+const getApiBaseUrl = () => {
+    const envUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+    // Remove trailing slash if present
+    const baseUrl = envUrl.replace(/\/$/, '');
+    // Ensure /api is appended
+    return baseUrl.endsWith('/api') ? baseUrl : `${baseUrl}/api`;
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 // Get token from localStorage
 const getToken = () => {
