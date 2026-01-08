@@ -32,6 +32,7 @@ const ProjectTasks = ({ tasks }) => {
         priority: "",
         assignee: "",
     });
+    const [searchTerm, setSearchTerm] = useState("");
 
     // Ensure tasks is always an array
     const safeTasks = Array.isArray(tasks) ? tasks : [];
@@ -44,6 +45,22 @@ const ProjectTasks = ({ tasks }) => {
     const filteredTasks = useMemo(() => {
         return safeTasks.filter((task) => {
             if (!task) return false;
+            
+            // Text search filter
+            if (searchTerm) {
+                const searchLower = searchTerm.toLowerCase();
+                const matchesSearch = 
+                    task?.title?.toLowerCase().includes(searchLower) ||
+                    task?.description?.toLowerCase().includes(searchLower) ||
+                    task?.type?.toLowerCase().includes(searchLower) ||
+                    task?.status?.toLowerCase().includes(searchLower) ||
+                    task?.priority?.toLowerCase().includes(searchLower) ||
+                    task?.assignee?.name?.toLowerCase().includes(searchLower);
+                
+                if (!matchesSearch) return false;
+            }
+            
+            // Filter by status, type, priority, assignee
             const { status, type, priority, assignee } = filters;
             return (
                 (!status || task.status === status) &&
@@ -52,7 +69,7 @@ const ProjectTasks = ({ tasks }) => {
                 (!assignee || task.assignee?.name === assignee)
             );
         });
-    }, [filters, safeTasks]);
+    }, [filters, safeTasks, searchTerm]);
 
     const handleFilterChange = (e) => {
         const { name, value } = e.target;
@@ -160,8 +177,18 @@ const ProjectTasks = ({ tasks }) => {
 
     return (
         <div>
-            {/* Filters */}
+            {/* Search and Filters */}
             <div className="flex flex-wrap gap-4 mb-4">
+                {/* Search Input */}
+                <div className="relative flex-1 min-w-[200px]">
+                    <input
+                        type="text"
+                        placeholder="Search tasks..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full pl-3 pr-3 py-1 rounded border border-zinc-300 dark:border-zinc-800 outline-none text-sm text-zinc-900 dark:text-zinc-200 placeholder-zinc-400 dark:placeholder-zinc-500 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                </div>
                 {["status", "type", "priority", "assignee"].map((name) => {
                     const options = {
                         status: [
@@ -199,8 +226,11 @@ const ProjectTasks = ({ tasks }) => {
                 })}
 
                 {/* Reset filters */}
-                {(filters.status || filters.type || filters.priority || filters.assignee) && (
-                    <button type="button" onClick={() => setFilters({ status: "", type: "", priority: "", assignee: "" })} className="px-3 py-1 flex items-center gap-2 rounded bg-gradient-to-br from-purple-400 to-purple-500 text-zinc-100 dark:text-zinc-200 text-sm transition-colors" >
+                {(filters.status || filters.type || filters.priority || filters.assignee || searchTerm) && (
+                    <button type="button" onClick={() => {
+                        setFilters({ status: "", type: "", priority: "", assignee: "" });
+                        setSearchTerm("");
+                    }} className="px-3 py-1 flex items-center gap-2 rounded bg-gradient-to-br from-purple-400 to-purple-500 text-zinc-100 dark:text-zinc-200 text-sm transition-colors" >
                         <XIcon className="size-3" /> Reset
                     </button>
                 )}

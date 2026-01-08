@@ -19,23 +19,26 @@ export default function Projects() {
     });
 
     useEffect(() => {
-        let filtered = projects;
+        // Ensure projects is always an array
+        const safeProjects = Array.isArray(projects) ? projects : [];
+        let filtered = safeProjects;
 
         if (searchTerm) {
+            const searchLower = searchTerm.toLowerCase().trim();
             filtered = filtered.filter(
                 (project) =>
-                    project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                    project.description?.toLowerCase().includes(searchTerm.toLowerCase())
+                    project?.name?.toLowerCase().includes(searchLower) ||
+                    project?.description?.toLowerCase().includes(searchLower)
             );
         }
 
         if (filters.status !== "ALL") {
-            filtered = filtered.filter((project) => project.status === filters.status);
+            filtered = filtered.filter((project) => project?.status === filters.status);
         }
 
         if (filters.priority !== "ALL") {
             filtered = filtered.filter(
-                (project) => project.priority === filters.priority
+                (project) => project?.priority === filters.priority
             );
         }
 
