@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeftIcon, PlusIcon, SettingsIcon, BarChart3Icon, CalendarIcon, FileStackIcon, ZapIcon } from "lucide-react";
 import ProjectAnalytics from "../components/ProjectAnalytics";
@@ -7,6 +7,8 @@ import ProjectSettings from "../components/ProjectSettings";
 import CreateTaskDialog from "../components/CreateTaskDialog";
 import ProjectCalendar from "../components/ProjectCalendar";
 import ProjectTasks from "../components/ProjectTasks";
+import { taskAPI } from "../services/api";
+import { fetchWorkspaces } from "../features/workspaceSlice";
 
 export default function ProjectDetail() {
 
@@ -15,6 +17,7 @@ export default function ProjectDetail() {
     const id = searchParams.get('id');
 
     const navigate = useNavigate();
+    const dispatch = useDispatch();
     const currentWorkspace = useSelector((state) => state?.workspace?.currentWorkspace);
     const projects = currentWorkspace?.projects || [];
 
@@ -22,10 +25,52 @@ export default function ProjectDetail() {
     const [tasks, setTasks] = useState([]);
     const [showCreateTask, setShowCreateTask] = useState(false);
     const [activeTab, setActiveTab] = useState(tab || "tasks");
+    const [loadingTasks, setLoadingTasks] = useState(false);
 
     useEffect(() => {
         if (tab) setActiveTab(tab);
     }, [tab]);
+
+    // Fetch tasks from API when component mounts or projectId changes
+    useEffect(() => {
+        const fetchTasksFromAPI = async () => {
+            if (!id) {
+                setTasks([]);
+                return;
+            }
+
+            setLoadingTasks(true);
+            try {
+                // Fetch tasks from API - this ensures we get the latest data from database
+                const fetchedTasks = await taskAPI.getByProject(id);
+                
+                if (Array.isArray(fetchedTasks)) {
+                    // Update local state with fetched tasks
+                    setTasks(fetchedTasks);
+                    
+                    // Also reload workspaces to sync Redux state with backend
+                    // This ensures consistency across the app
+                    await dispatch(fetchWorkspaces()).unwrap();
+                } else {
+                    // If API returns non-array, use empty array
+                    setTasks([]);
+                }
+            } catch (error) {
+                console.error("Error fetching tasks:", error);
+                // If API call fails, try to use tasks from Redux state as fallback
+                const projectFromRedux = currentWorkspace?.projects?.find((p) => p?.id === id);
+                if (projectFromRedux?.tasks && Array.isArray(projectFromRedux.tasks)) {
+                    setTasks(projectFromRedux.tasks);
+                } else {
+                    setTasks([]);
+                }
+            } finally {
+                setLoadingTasks(false);
+            }
+        };
+
+        fetchTasksFromAPI();
+    }, [id, dispatch, currentWorkspace]);
 
     // Derive project and tasks from currentWorkspace using useMemo for better reactivity
     // Use a more comprehensive signature that includes task count and IDs to detect changes
@@ -70,15 +115,12 @@ export default function ProjectDetail() {
         };
     }, [id, currentWorkspace, projectSignature]);
 
-    // Update project and tasks state whenever normalizedProject changes
+    // Update project state whenever normalizedProject changes
     useEffect(() => {
         if (normalizedProject) {
-            // Always update to ensure we have the latest data
             setProject(normalizedProject);
-            setTasks(normalizedProject.tasks);
         } else {
             setProject(null);
-            setTasks([]);
         }
     }, [normalizedProject]);
 
@@ -159,7 +201,13 @@ export default function ProjectDetail() {
                 <div className="mt-6">
                     {activeTab === "tasks" && (
                         <div className=" dark:bg-zinc-900/40 rounded max-w-6xl">
-                            <ProjectTasks tasks={tasks} />
+                            {loadingTasks ? (
+                                <div className="p-6 text-center text-zinc-600 dark:text-zinc-400">
+                                    <p>Loading tasks...</p>
+                                </div>
+                            ) : (
+                                <ProjectTasks tasks={tasks} />
+                            )}
                         </div>
                     )}
                     {activeTab === "analytics" && (
