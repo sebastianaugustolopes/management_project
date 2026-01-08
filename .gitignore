@@ -45,8 +45,3 @@ backend/src/main/resources/application-dev.yml
 # Docker
 docker-compose.override.yml
 
-# Documentation files (should not be committed)
-CODE_OF_CONDUCT.md
-CONTRIBUTING.md
-LICENSE.md
-README.md
