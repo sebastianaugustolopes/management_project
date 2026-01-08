@@ -33,13 +33,17 @@ const ProjectTasks = ({ tasks }) => {
         assignee: "",
     });
 
+    // Ensure tasks is always an array
+    const safeTasks = Array.isArray(tasks) ? tasks : [];
+
     const assigneeList = useMemo(
-        () => Array.from(new Set(tasks.map((t) => t.assignee?.name).filter(Boolean))),
-        [tasks]
+        () => Array.from(new Set(safeTasks.map((t) => t?.assignee?.name).filter(Boolean))),
+        [safeTasks]
     );
 
     const filteredTasks = useMemo(() => {
-        return tasks.filter((task) => {
+        return safeTasks.filter((task) => {
+            if (!task) return false;
             const { status, type, priority, assignee } = filters;
             return (
                 (!status || task.status === status) &&
@@ -48,7 +52,7 @@ const ProjectTasks = ({ tasks }) => {
                 (!assignee || task.assignee?.name === assignee)
             );
         });
-    }, [filters, tasks]);
+    }, [filters, safeTasks]);
 
     const handleFilterChange = (e) => {
         const { name, value } = e.target;
@@ -59,7 +63,7 @@ const ProjectTasks = ({ tasks }) => {
         try {
             toast.loading("Updating status...");
 
-            const task = tasks.find((t) => t.id === taskId);
+            const task = safeTasks.find((t) => t?.id === taskId);
             if (!task) {
                 toast.dismissAll();
                 toast.error("Task not found");
@@ -68,14 +72,14 @@ const ProjectTasks = ({ tasks }) => {
 
             // Update task via API
             const updatedTask = await taskAPI.update(taskId, {
-                projectId: task.projectId,
-                title: task.title,
-                description: task.description,
-                type: task.type,
+                projectId: task?.projectId,
+                title: task?.title || '',
+                description: task?.description || null,
+                type: task?.type || 'TASK',
                 status: newStatus,
-                priority: task.priority,
-                assigneeId: task.assigneeId,
-                dueDate: task.dueDate,
+                priority: task?.priority || 'MEDIUM',
+                assigneeId: task?.assigneeId || task?.assignee?.id || null,
+                dueDate: task?.dueDate || task?.due_date || null,
             });
 
             dispatch(updateTask(updatedTask));
@@ -95,6 +99,11 @@ const ProjectTasks = ({ tasks }) => {
         try {
             const confirm = window.confirm("Are you sure you want to delete the selected tasks?");
             if (!confirm) return;
+
+            if (!Array.isArray(selectedTasks) || selectedTasks.length === 0) {
+                toast.error("No tasks selected");
+                return;
+            }
 
             toast.loading("Deleting tasks...");
 
@@ -212,7 +221,7 @@ const ProjectTasks = ({ tasks }) => {
                             <thead className="text-xs uppercase dark:bg-zinc-800/70 text-zinc-500 dark:text-zinc-400 ">
                                 <tr>
                                     <th className="pl-2 pr-1">
-                                        <input onChange={() => selectedTasks.length > 1 ? setSelectedTasks([]) : setSelectedTasks(tasks.map((t) => t.id))} checked={selectedTasks.length === tasks.length} type="checkbox" className="size-3 accent-zinc-600 dark:accent-zinc-500" />
+                                        <input onChange={() => selectedTasks.length > 1 ? setSelectedTasks([]) : setSelectedTasks(safeTasks.map((t) => t?.id).filter(Boolean))} checked={selectedTasks.length === safeTasks.length && safeTasks.length > 0} type="checkbox" className="size-3 accent-zinc-600 dark:accent-zinc-500" />
                                     </th>
                                     <th className="px-4 pl-0 py-3">Title</th>
                                     <th className="px-4 py-3">Type</th>
@@ -224,30 +233,31 @@ const ProjectTasks = ({ tasks }) => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {filteredTasks.length > 0 ? (
+                                {Array.isArray(filteredTasks) && filteredTasks.length > 0 ? (
                                     filteredTasks.map((task) => {
-                                        const { icon: Icon, color } = typeIcons[task.type] || {};
-                                        const { background, prioritycolor } = priorityTexts[task.priority] || {};
+                                        if (!task) return null;
+                                        const { icon: Icon, color } = typeIcons[task?.type] || {};
+                                        const { background, prioritycolor } = priorityTexts[task?.priority] || {};
 
                                         return (
-                                            <tr key={task.id} onClick={() => navigate(`/taskDetails?projectId=${task.projectId}&taskId=${task.id}`)} className=" border-t border-zinc-300 dark:border-zinc-800 group hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-all cursor-pointer" >
+                                            <tr key={task?.id} onClick={() => navigate(`/taskDetails?projectId=${task?.projectId}&taskId=${task?.id}`)} className=" border-t border-zinc-300 dark:border-zinc-800 group hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-all cursor-pointer" >
                                                 <td onClick={e => e.stopPropagation()} className="pl-2 pr-1">
-                                                    <input type="checkbox" className="size-3 accent-zinc-600 dark:accent-zinc-500" onChange={() => selectedTasks.includes(task.id) ? setSelectedTasks(selectedTasks.filter((i) => i !== task.id)) : setSelectedTasks((prev) => [...prev, task.id])} checked={selectedTasks.includes(task.id)} />
+                                                    <input type="checkbox" className="size-3 accent-zinc-600 dark:accent-zinc-500" onChange={() => selectedTasks.includes(task?.id) ? setSelectedTasks(selectedTasks.filter((i) => i !== task?.id)) : setSelectedTasks((prev) => [...prev, task?.id])} checked={selectedTasks.includes(task?.id)} />
                                                 </td>
-                                                <td className="px-4 pl-0 py-2">{task.title}</td>
+                                                <td className="px-4 pl-0 py-2">{task?.title || 'N/A'}</td>
                                                 <td className="px-4 py-2">
                                                     <div className="flex items-center gap-2">
                                                         {Icon && <Icon className={`size-4 ${color}`} />}
-                                                        <span className={`uppercase text-xs ${color}`}>{task.type}</span>
+                                                        <span className={`uppercase text-xs ${color}`}>{task?.type || 'N/A'}</span>
                                                     </div>
                                                 </td>
                                                 <td className="px-4 py-2">
                                                     <span className={`text-xs px-2 py-1 rounded ${background} ${prioritycolor}`}>
-                                                        {task.priority}
+                                                        {task?.priority || 'N/A'}
                                                     </span>
                                                 </td>
                                                 <td onClick={e => e.stopPropagation()} className="px-4 py-2">
-                                                    <select name="status" onChange={(e) => handleStatusChange(task.id, e.target.value)} value={task.status} className="group-hover:ring ring-zinc-100 outline-none px-2 pr-4 py-1 rounded text-sm text-zinc-900 dark:text-zinc-200 cursor-pointer" >
+                                                    <select name="status" onChange={(e) => handleStatusChange(task?.id, e.target.value)} value={task?.status || 'TODO'} className="group-hover:ring ring-zinc-100 outline-none px-2 pr-4 py-1 rounded text-sm text-zinc-900 dark:text-zinc-200 cursor-pointer" >
                                                         <option value="TODO">To Do</option>
                                                         <option value="IN_PROGRESS">In Progress</option>
                                                         <option value="DONE">Done</option>
@@ -255,8 +265,8 @@ const ProjectTasks = ({ tasks }) => {
                                                 </td>
                                                 <td className="px-4 py-2">
                                                     <div className="flex items-center gap-2">
-                                                        <img src={task.assignee?.image} className="size-5 rounded-full" alt="avatar" />
-                                                        {task.assignee?.name || "-"}
+                                                        <img src={task?.assignee?.image || ''} className="size-5 rounded-full" alt="avatar" />
+                                                        {task?.assignee?.name || "-"}
                                                     </div>
                                                 </td>
                                                 <td className="px-4 py-2">
@@ -290,10 +300,11 @@ const ProjectTasks = ({ tasks }) => {
 
                     {/* Mobile/Card View */}
                     <div className="lg:hidden flex flex-col gap-4">
-                        {filteredTasks.length > 0 ? (
+                        {Array.isArray(filteredTasks) && filteredTasks.length > 0 ? (
                             filteredTasks.map((task) => {
-                                const { icon: Icon, color } = typeIcons[task.type] || {};
-                                const { background, prioritycolor } = priorityTexts[task.priority] || {};
+                                if (!task) return null;
+                                const { icon: Icon, color } = typeIcons[task?.type] || {};
+                                const { background, prioritycolor } = priorityTexts[task?.priority] || {};
 
                                 return (
                                     <div key={task.id} className=" dark:bg-gradient-to-br dark:from-zinc-800/70 dark:to-zinc-900/50 border border-zinc-300 dark:border-zinc-800 rounded-lg p-4 flex flex-col gap-2">

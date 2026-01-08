@@ -14,8 +14,10 @@ const AddProjectMember = ({ isDialogOpen, setIsDialogOpen }) => {
 
     const currentWorkspace = useSelector((state) => state.workspace?.currentWorkspace || null);
 
-    const project = currentWorkspace?.projects.find((p) => p.id === id);
-    const projectMembersEmails = project?.members?.map((member) => member.user?.email || member.email).filter(Boolean) || [];
+    const project = currentWorkspace?.projects?.find((p) => p.id === id);
+    const projectMembersEmails = Array.isArray(project?.members) 
+        ? project.members.map((member) => member?.user?.email || member?.email).filter(Boolean) 
+        : [];
 
     const [email, setEmail] = useState('');
     const [isAdding, setIsAdding] = useState(false);
@@ -94,11 +96,15 @@ const AddProjectMember = ({ isDialogOpen, setIsDialogOpen }) => {
                             {/* List All non project members from current workspace */}
                             <select value={email} onChange={(e) => setEmail(e.target.value)} className="pl-10 mt-1 w-full rounded border border-zinc-300 dark:border-zinc-700 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-200 text-sm placeholder-zinc-400 dark:placeholder-zinc-500 py-2 focus:outline-none focus:border-blue-500" required >
                                 <option value="">Select a member</option>
-                                {currentWorkspace?.members
-                                    .filter((member) => !projectMembersEmails.includes(member.user.email))
-                                    .map((member) => (
-                                        <option key={member.user.id} value={member.user.email}> {member.user.email} </option>
-                                    ))}
+                                {Array.isArray(currentWorkspace?.members) 
+                                    ? currentWorkspace.members
+                                        .filter((member) => !projectMembersEmails.includes(member?.user?.email))
+                                        .map((member) => (
+                                            <option key={member?.user?.id || member?.id} value={member?.user?.email || member?.email}> 
+                                                {member?.user?.email || member?.email || 'N/A'} 
+                                            </option>
+                                        ))
+                                    : null}
                             </select>
                         </div>
                     </div>

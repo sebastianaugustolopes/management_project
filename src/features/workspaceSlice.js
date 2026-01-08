@@ -202,13 +202,27 @@ const workspaceSlice = createSlice({
             })
             .addCase(fetchWorkspaces.fulfilled, (state, action) => {
                 state.loading = false;
-                state.workspaces = action.payload;
+                // Ensure payload is an array
+                const workspaces = Array.isArray(action.payload) ? action.payload : [];
+                state.workspaces = workspaces;
+                
+                // Normalize workspaces: ensure projects and members are arrays
+                state.workspaces = workspaces.map(w => ({
+                    ...w,
+                    projects: Array.isArray(w?.projects) ? w.projects.map(p => ({
+                        ...p,
+                        tasks: Array.isArray(p?.tasks) ? p.tasks : [],
+                        members: Array.isArray(p?.members) ? p.members : []
+                    })) : [],
+                    members: Array.isArray(w?.members) ? w.members : []
+                }));
+                
                 // Set first workspace as current if none selected
-                if (!state.currentWorkspace && action.payload.length > 0) {
+                if (!state.currentWorkspace && state.workspaces.length > 0) {
                     const storedId = localStorage.getItem("currentWorkspaceId");
                     const workspace = storedId 
-                        ? action.payload.find(w => w.id === storedId)
-                        : action.payload[0];
+                        ? state.workspaces.find(w => w?.id === storedId)
+                        : state.workspaces[0];
                     if (workspace) {
                         state.currentWorkspace = workspace;
                         localStorage.setItem("currentWorkspaceId", workspace.id);

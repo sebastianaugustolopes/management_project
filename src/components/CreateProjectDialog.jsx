@@ -42,24 +42,24 @@ const CreateProjectDialog = ({ isDialogOpen, setIsDialogOpen }) => {
         try {
             // Find team lead user ID by email if provided
             let teamLeadUserId = null;
-            if (formData.team_lead) {
-                const leadMember = currentWorkspace.members?.find(
-                    (m) => m.user?.email === formData.team_lead
+            if (formData.team_lead && Array.isArray(currentWorkspace?.members)) {
+                const leadMember = currentWorkspace.members.find(
+                    (m) => m?.user?.email === formData.team_lead || m?.email === formData.team_lead
                 );
                 if (leadMember) {
-                    teamLeadUserId = leadMember.userId;
+                    teamLeadUserId = leadMember?.userId || leadMember?.user?.id;
                 }
             }
 
             // Convert team member emails to user IDs
             const teamMemberIds = [];
-            if (formData.team_members && formData.team_members.length > 0) {
+            if (formData.team_members && Array.isArray(formData.team_members) && formData.team_members.length > 0 && Array.isArray(currentWorkspace?.members)) {
                 formData.team_members.forEach((email) => {
-                    const member = currentWorkspace.members?.find(
-                        (m) => m.user?.email === email
+                    const member = currentWorkspace.members.find(
+                        (m) => m?.user?.email === email || m?.email === email
                     );
                     if (member) {
-                        teamMemberIds.push(member.userId);
+                        teamMemberIds.push(member?.userId || member?.user?.id);
                     }
                 });
             }
@@ -184,11 +184,11 @@ const CreateProjectDialog = ({ isDialogOpen, setIsDialogOpen }) => {
                         <label className="block text-sm mb-1">Project Lead</label>
                         <select value={formData.team_lead} onChange={(e) => setFormData({ ...formData, team_lead: e.target.value, team_members: e.target.value ? [...new Set([...formData.team_members, e.target.value])] : formData.team_members, })} className="w-full px-3 py-2 rounded dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 mt-1 text-zinc-900 dark:text-zinc-200 text-sm" >
                             <option value="">No lead</option>
-                            {currentWorkspace?.members?.map((member) => (
-                                <option key={member.user.email} value={member.user.email}>
-                                    {member.user.email}
+                            {Array.isArray(currentWorkspace?.members) && currentWorkspace.members.length > 0 ? currentWorkspace.members.map((member) => (
+                                <option key={member?.user?.email || member?.email} value={member?.user?.email || member?.email}>
+                                    {member?.user?.email || member?.email || 'N/A'}
                                 </option>
-                            ))}
+                            )) : null}
                         </select>
                     </div>
 
@@ -203,13 +203,15 @@ const CreateProjectDialog = ({ isDialogOpen, setIsDialogOpen }) => {
                             }}
                         >
                             <option value="">Add team members</option>
-                            {currentWorkspace?.members
-                                ?.filter((member) => !formData.team_members.includes(member.user.email))
-                                .map((member) => (
-                                    <option key={member.user.email} value={member.user.email}>
-                                        {member.user.email}
-                                    </option>
-                                ))}
+                            {Array.isArray(currentWorkspace?.members) && currentWorkspace.members.length > 0
+                                ? currentWorkspace.members
+                                    .filter((member) => !formData.team_members.includes(member?.user?.email || member?.email))
+                                    .map((member) => (
+                                        <option key={member?.user?.email || member?.email} value={member?.user?.email || member?.email}>
+                                            {member?.user?.email || member?.email || 'N/A'}
+                                        </option>
+                                    ))
+                                : null}
                         </select>
 
                         {formData.team_members.length > 0 && (

@@ -12,10 +12,10 @@ const Team = () => {
     const currentWorkspace = useSelector((state) => state?.workspace?.currentWorkspace || null);
     const projects = currentWorkspace?.projects || [];
 
-    const filteredUsers = users.filter(
+    const filteredUsers = (Array.isArray(users) ? users : []).filter(
         (user) =>
-            user?.user?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            user?.user?.email?.toLowerCase().includes(searchTerm.toLowerCase())
+            user?.user?.name?.toLowerCase()?.includes(searchTerm.toLowerCase()) ||
+            user?.user?.email?.toLowerCase()?.includes(searchTerm.toLowerCase())
     );
 
     useEffect(() => {
@@ -131,23 +131,23 @@ const Team = () => {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-200 dark:divide-zinc-800">
-                                    {filteredUsers.map((user) => (
+                                    {Array.isArray(filteredUsers) && filteredUsers.length > 0 ? filteredUsers.map((user) => (
                                         <tr
-                                            key={user.id}
+                                            key={user?.id || Math.random()}
                                             className="hover:bg-gray-50 dark:hover:bg-zinc-800/50 transition-colors"
                                         >
                                             <td className="px-6 py-2.5 whitespace-nowrap flex items-center gap-3">
                                                 <img
-                                                    src={user.user.image}
-                                                    alt={user.user.name}
+                                                    src={user?.user?.image || ''}
+                                                    alt={user?.user?.name || 'User'}
                                                     className="size-7 rounded-full bg-gray-200 dark:bg-zinc-800"
                                                 />
                                                 <span className="text-sm text-zinc-800 dark:text-white truncate">
-                                                    {user.user?.name || "Unknown User"}
+                                                    {user?.user?.name || "Unknown User"}
                                                 </span>
                                             </td>
                                             <td className="px-6 py-2.5 whitespace-nowrap text-sm text-gray-500 dark:text-zinc-400">
-                                                {user.user.email}
+                                                {user?.user?.email || 'N/A'}
                                             </td>
                                             <td className="px-6 py-2.5 whitespace-nowrap">
                                                 <span
@@ -160,30 +160,30 @@ const Team = () => {
                                                 </span>
                                             </td>
                                         </tr>
-                                    ))}
+                                    )) : null}
                                 </tbody>
                             </table>
                         </div>
 
                         {/* Mobile Cards */}
                         <div className="sm:hidden space-y-3">
-                            {filteredUsers.map((user) => (
+                            {Array.isArray(filteredUsers) && filteredUsers.length > 0 ? filteredUsers.map((user) => (
                                 <div
-                                    key={user.id}
+                                    key={user?.id || Math.random()}
                                     className="p-4 border border-gray-200 dark:border-zinc-800 rounded-md bg-white dark:bg-zinc-900"
                                 >
                                     <div className="flex items-center gap-3 mb-2">
                                         <img
-                                            src={user.user.image}
-                                            alt={user.user.name}
+                                            src={user?.user?.image || ''}
+                                            alt={user?.user?.name || 'User'}
                                             className="size-9 rounded-full bg-gray-200 dark:bg-zinc-800"
                                         />
                                         <div>
                                             <p className="font-medium text-gray-900 dark:text-white">
-                                                {user.user?.name || "Unknown User"}
+                                                {user?.user?.name || "Unknown User"}
                                             </p>
                                             <p className="text-sm text-gray-500 dark:text-zinc-400">
-                                                {user.user.email}
+                                                {user?.user?.email || 'N/A'}
                                             </p>
                                         </div>
                                     </div>
@@ -198,7 +198,7 @@ const Team = () => {
                                         </span>
                                     </div>
                                 </div>
-                            ))}
+                            )) : null}
                         </div>
                     </div>
                 )}

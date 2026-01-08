@@ -110,7 +110,8 @@ export const authAPI = {
 // Workspace API
 export const workspaceAPI = {
     getAll: async () => {
-        return apiRequest('/workspaces');
+        const result = await apiRequest('/workspaces');
+        return Array.isArray(result) ? result : [];
     },
     getById: async (id) => {
         return apiRequest(`/workspaces/${id}`);
@@ -143,7 +144,8 @@ export const workspaceAPI = {
 // Project API
 export const projectAPI = {
     getAll: async () => {
-        return apiRequest('/projects');
+        const result = await apiRequest('/projects');
+        return Array.isArray(result) ? result : [];
     },
     getById: async (id) => {
         return apiRequest(`/projects/${id}`);
@@ -166,7 +168,8 @@ export const projectAPI = {
         });
     },
     getByWorkspace: async (workspaceId) => {
-        return apiRequest(`/projects/workspace/${workspaceId}`);
+        const result = await apiRequest(`/projects/workspace/${workspaceId}`);
+        return Array.isArray(result) ? result : [];
     },
     addMember: async (projectId, member) => {
         return apiRequest(`/projects/${projectId}/members`, {
@@ -179,7 +182,8 @@ export const projectAPI = {
 // Task API
 export const taskAPI = {
     getAll: async () => {
-        return apiRequest('/tasks');
+        const result = await apiRequest('/tasks');
+        return Array.isArray(result) ? result : [];
     },
     getById: async (id) => {
         return apiRequest(`/tasks/${id}`);
@@ -202,14 +206,16 @@ export const taskAPI = {
         });
     },
     getByProject: async (projectId) => {
-        return apiRequest(`/tasks/project/${projectId}`);
+        const result = await apiRequest(`/tasks/project/${projectId}`);
+        return Array.isArray(result) ? result : [];
     },
 };
 
 // Comment API
 export const commentAPI = {
     getByTask: async (taskId) => {
-        return apiRequest(`/comments/task/${taskId}`);
+        const result = await apiRequest(`/comments/task/${taskId}`);
+        return Array.isArray(result) ? result : [];
     },
     create: async (taskId, comment) => {
         return apiRequest(`/comments/task/${taskId}`, {

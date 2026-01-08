@@ -30,9 +30,10 @@ const TaskDetails = () => {
         
         try {
             const fetchedComments = await commentAPI.getByTask(taskId);
-            setComments(fetchedComments || []);
+            setComments(Array.isArray(fetchedComments) ? fetchedComments : []);
         } catch (error) {
             console.error("Error fetching comments:", error);
+            setComments([]);
         }
     };
 
@@ -152,20 +153,23 @@ const TaskDetails = () => {
                     </h2>
 
                     <div className="flex-1 md:overflow-y-scroll no-scrollbar">
-                        {comments.length > 0 ? (
+                        {Array.isArray(comments) && comments.length > 0 ? (
                             <div className="flex flex-col gap-4 mb-6 mr-2">
-                                {comments.map((comment) => (
-                                    <div key={comment.id} className={`sm:max-w-4/5 dark:bg-gradient-to-br dark:from-zinc-800 dark:to-zinc-900 border border-gray-300 dark:border-zinc-700 p-3 rounded-md ${comment.userId === user?.id ? "ml-auto" : "mr-auto"}`} >
-                                        <div className="flex items-center gap-2 mb-1 text-sm text-gray-500 dark:text-zinc-400">
-                                            <img src={comment.user?.image || assets.profile_img_a} alt="avatar" className="size-5 rounded-full" />
-                                            <span className="font-medium text-gray-900 dark:text-white">{comment.user?.name || "User"}</span>
-                                            <span className="text-xs text-gray-400 dark:text-zinc-600">
-                                                • {format(new Date(comment.createdAt || comment.created_at), "dd MMM yyyy, HH:mm")}
-                                            </span>
+                                {comments.map((comment) => {
+                                    if (!comment) return null;
+                                    return (
+                                        <div key={comment?.id || Math.random()} className={`sm:max-w-4/5 dark:bg-gradient-to-br dark:from-zinc-800 dark:to-zinc-900 border border-gray-300 dark:border-zinc-700 p-3 rounded-md ${comment?.userId === user?.id ? "ml-auto" : "mr-auto"}`} >
+                                            <div className="flex items-center gap-2 mb-1 text-sm text-gray-500 dark:text-zinc-400">
+                                                <img src={comment?.user?.image || assets.profile_img_a} alt="avatar" className="size-5 rounded-full" />
+                                                <span className="font-medium text-gray-900 dark:text-white">{comment?.user?.name || "User"}</span>
+                                                <span className="text-xs text-gray-400 dark:text-zinc-600">
+                                                    • {comment?.createdAt || comment?.created_at ? format(new Date(comment.createdAt || comment.created_at), "dd MMM yyyy, HH:mm") : 'N/A'}
+                                                </span>
+                                            </div>
+                                            <p className="text-sm text-gray-900 dark:text-zinc-200">{comment?.content || 'N/A'}</p>
                                         </div>
-                                        <p className="text-sm text-gray-900 dark:text-zinc-200">{comment.content}</p>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         ) : (
                             <p className="text-gray-600 dark:text-zinc-500 mb-4 text-sm">No comments yet. Be the first!</p>
@@ -224,12 +228,12 @@ const TaskDetails = () => {
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-gray-700 dark:text-zinc-300">
                         <div className="flex items-center gap-2">
-                            <img src={task.assignee?.image} className="size-5 rounded-full" alt="avatar" />
-                            {task.assignee?.name || "Unassigned"}
+                            <img src={task?.assignee?.image || ''} className="size-5 rounded-full" alt="avatar" />
+                            {task?.assignee?.name || "Unassigned"}
                         </div>
                         <div className="flex items-center gap-2">
                             <CalendarIcon className="size-4 text-gray-500 dark:text-zinc-500" />
-                            {(task.dueDate || task.due_date) ? `Due: ${format(new Date(task.dueDate || task.due_date), "dd MMM yyyy")}` : "No due date"}
+                            {(task?.dueDate || task?.due_date) ? `Due: ${format(new Date(task.dueDate || task.due_date), "dd MMM yyyy")}` : "No due date"}
                         </div>
                     </div>
                 </div>
