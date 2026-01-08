@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { GitCommit, MessageSquare, Clock, Bug, Zap, Square } from "lucide-react";
 import { format } from "date-fns";
 import { useSelector } from "react-redux";
+import { taskAPI } from "../services/api";
 
 const typeIcons = {
     BUG: { icon: Bug, color: "text-red-500 dark:text-red-400" },
@@ -21,21 +22,41 @@ const RecentActivity = () => {
     const [tasks, setTasks] = useState([]);
     const { currentWorkspace } = useSelector((state) => state.workspace);
 
-    const getTasksFromCurrentWorkspace = () => {
-        if (!currentWorkspace || !currentWorkspace.projects) {
-            setTasks([]);
-            return;
-        }
-
-        const tasks = (currentWorkspace.projects || []).flatMap((project) => {
-            const projectTasks = project.tasks || [];
-            return projectTasks.map((task) => task);
-        });
-        setTasks(tasks);
-    };
-
     useEffect(() => {
-        getTasksFromCurrentWorkspace();
+        const fetchTasks = async () => {
+            if (!currentWorkspace || !currentWorkspace.projects) {
+                setTasks([]);
+                return;
+            }
+
+            const projects = currentWorkspace.projects || [];
+            
+            try {
+                // Fetch tasks from API for each project
+                const taskPromises = projects.map(project => 
+                    project?.id ? taskAPI.getByProject(project.id) : Promise.resolve([])
+                );
+                const taskArrays = await Promise.all(taskPromises);
+                const allTasks = taskArrays.flat();
+                
+                // Sort by updated date (most recent first)
+                const sortedTasks = allTasks.sort((a, b) => {
+                    const dateA = new Date(a?.updatedAt || a?.updated_at || a?.createdAt || a?.created_at || 0);
+                    const dateB = new Date(b?.updatedAt || b?.updated_at || b?.createdAt || b?.created_at || 0);
+                    return dateB - dateA;
+                });
+                
+                // Limit to most recent 10 tasks
+                setTasks(sortedTasks.slice(0, 10));
+            } catch (error) {
+                console.error("Error fetching tasks for recent activity:", error);
+                // Fallback to tasks from Redux state
+                const tasks = projects.flatMap((project) => project?.tasks || []);
+                setTasks(tasks);
+            }
+        };
+
+        fetchTasks();
     }, [currentWorkspace]);
 
     return (

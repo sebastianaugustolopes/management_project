@@ -1,11 +1,13 @@
 import { FolderOpen, CheckCircle, Users, AlertTriangle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
+import { taskAPI } from "../services/api";
 
 export default function StatsGrid() {
     const currentWorkspace = useSelector(
         (state) => state?.workspace?.currentWorkspace || null
     );
+    const { user } = useSelector((state) => state.auth);
 
     const [stats, setStats] = useState({
         totalProjects: 0,
@@ -51,39 +53,65 @@ export default function StatsGrid() {
     ];
 
     useEffect(() => {
-        if (currentWorkspace && currentWorkspace.projects) {
+        const fetchAndCalculateStats = async () => {
+            if (!currentWorkspace || !currentWorkspace.projects) {
+                setStats({
+                    totalProjects: 0,
+                    activeProjects: 0,
+                    completedProjects: 0,
+                    myTasks: 0,
+                    overdueIssues: 0,
+                });
+                return;
+            }
+
             const projects = currentWorkspace.projects || [];
-            setStats({
-                totalProjects: projects.length,
-                activeProjects: projects.filter(
-                    (p) => p.status !== "CANCELLED" && p.status !== "COMPLETED"
-                ).length,
-                completedProjects: projects
-                    .filter((p) => p.status === "COMPLETED")
-                    .reduce((acc, project) => acc + (project.tasks?.length || 0), 0),
-                myTasks: projects.reduce(
-                    (acc, project) => {
-                        const tasks = project.tasks || [];
-                        return acc + tasks.filter(
-                            (t) => t.assigneeId === currentWorkspace.ownerId || 
-                                   t.assignee?.email === currentWorkspace.owner?.email
-                        ).length;
-                    },
-                    0
-                ),
-                overdueIssues: projects.reduce(
-                    (acc, project) => {
-                        const tasks = project.tasks || [];
-                        return acc + tasks.filter((t) => {
-                            const dueDate = t.dueDate || t.due_date;
-                            return dueDate && new Date(dueDate) < new Date() && t.status !== "DONE";
-                        }).length;
-                    },
-                    0
-                ),
+            
+            // Fetch all tasks from API for all projects in the workspace
+            let allTasks = [];
+            try {
+                const taskPromises = projects.map(project => 
+                    project?.id ? taskAPI.getByProject(project.id) : Promise.resolve([])
+                );
+                const taskArrays = await Promise.all(taskPromises);
+                allTasks = taskArrays.flat();
+            } catch (error) {
+                console.error("Error fetching tasks for stats:", error);
+                // Fallback to tasks from Redux state
+                allTasks = projects.flatMap((project) => project?.tasks || []);
+            }
+
+            // Calculate stats
+            const totalProjects = projects.length;
+            const activeProjects = projects.filter(
+                (p) => p.status !== "CANCELLED" && p.status !== "COMPLETED"
+            ).length;
+            const completedProjects = projects.filter((p) => p.status === "COMPLETED").length;
+            
+            // My Tasks: filter by user ID (check both assigneeId and assignee.id)
+            const myTasks = allTasks.filter((t) => {
+                return t?.assigneeId === user?.id || 
+                       t?.assignee?.id === user?.id ||
+                       t?.assignee?.email === user?.email;
             });
-        }
-    }, [currentWorkspace]);
+            
+            // Overdue tasks
+            const overdueIssues = allTasks.filter((t) => {
+                const dueDate = t?.dueDate || t?.due_date;
+                return dueDate && new Date(dueDate) < new Date() && t?.status !== "DONE";
+            });
+
+            setStats({
+                totalProjects,
+                activeProjects,
+                completedProjects,
+                myTasks: myTasks.length,
+                overdueIssues: overdueIssues.length,
+            });
+        };
+
+        fetchAndCalculateStats();
+    }, [currentWorkspace, user]);
 
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 my-9">

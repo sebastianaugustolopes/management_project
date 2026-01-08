@@ -1,16 +1,26 @@
 import { Plus } from 'lucide-react'
-import { useState } from 'react'
-import { useSelector } from 'react-redux'
+import { useState, useEffect } from 'react'
+import { useSelector, useDispatch } from 'react-redux'
 import StatsGrid from '../components/StatsGrid'
 import ProjectOverview from '../components/ProjectOverview'
 import RecentActivity from '../components/RecentActivity'
 import TasksSummary from '../components/TasksSummary'
 import CreateProjectDialog from '../components/CreateProjectDialog'
+import { fetchWorkspaces } from '../features/workspaceSlice'
 
 const Dashboard = () => {
 
     const { user } = useSelector((state) => state.auth)
+    const { isAuthenticated } = useSelector((state) => state.auth)
+    const dispatch = useDispatch()
     const [isDialogOpen, setIsDialogOpen] = useState(false)
+
+    // Fetch workspaces (and all related data) when Dashboard loads
+    useEffect(() => {
+        if (isAuthenticated) {
+            dispatch(fetchWorkspaces())
+        }
+    }, [isAuthenticated, dispatch])
 
     return (
         <div className='max-w-6xl mx-auto'>

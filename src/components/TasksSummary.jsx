@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { ArrowRight, Clock, AlertTriangle, User } from "lucide-react";
 import { useSelector } from "react-redux";
+import { taskAPI } from "../services/api";
 
 export default function TasksSummary() {
 
@@ -8,18 +9,41 @@ export default function TasksSummary() {
     const { user } = useSelector((state) => state.auth);
     const [tasks, setTasks] = useState([]);
 
-    // Get all tasks for all projects in current workspace
+    // Fetch all tasks from API for all projects in current workspace
     useEffect(() => {
-        if (currentWorkspace && currentWorkspace.projects) {
+        const fetchTasks = async () => {
+            if (!currentWorkspace || !currentWorkspace.projects) {
+                setTasks([]);
+                return;
+            }
+
             const projects = currentWorkspace.projects || [];
-            const allTasks = projects.flatMap((project) => project?.tasks || []);
-            setTasks(allTasks);
-        } else {
-            setTasks([]);
-        }
+            
+            try {
+                // Fetch tasks from API for each project
+                const taskPromises = projects.map(project => 
+                    project?.id ? taskAPI.getByProject(project.id) : Promise.resolve([])
+                );
+                const taskArrays = await Promise.all(taskPromises);
+                const allTasks = taskArrays.flat();
+                setTasks(allTasks);
+            } catch (error) {
+                console.error("Error fetching tasks for summary:", error);
+                // Fallback to tasks from Redux state
+                const allTasks = projects.flatMap((project) => project?.tasks || []);
+                setTasks(allTasks);
+            }
+        };
+
+        fetchTasks();
     }, [currentWorkspace]);
 
-    const myTasks = tasks.filter(i => i.assigneeId === user?.id);
+    // My Tasks: filter by user ID (check both assigneeId and assignee.id)
+    const myTasks = tasks.filter(i => 
+        i?.assigneeId === user?.id || 
+        i?.assignee?.id === user?.id ||
+        i?.assignee?.email === user?.email
+    );
     const overdueTasks = tasks.filter(t => {
         if (!t.dueDate && !t.due_date) return false;
         const dueDate = t.dueDate || t.due_date;
